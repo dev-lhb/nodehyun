@@ -12,11 +12,11 @@ if(process.env.NODE_ENV === "production") {
 
 const Users = () => {
     const { nickname } = useParams();
-    const [ loading, setLoading ]               = useState(false);
-    const [ matchList, setMatchList ]           = useState([]);
-    const [ gameList, setGameList ]             = useState([]);
-    const [ champions, setChampions ]           = useState({});
-    const [ items, setItems ]                   = useState({});
+    const [ loading, setLoading ]     = useState(false);
+    const [ matchList, setMatchList ] = useState([]);
+    const [ gameList, setGameList ]   = useState([]);
+    const [ champions, setChampions ] = useState({});
+    const [ items, setItems ]         = useState({});
     let index        = useRef(0);
     let scrolling    = useRef(false);
     let accountId    = useRef("");
