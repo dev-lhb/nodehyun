@@ -15,7 +15,7 @@ app.set('view engine', 'jade');
 app.engine('html', require('ejs').renderFile);
 
 app.use(logger('dev'));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'react-hyun/build')));
 
 app.use('/', indexRouter);
 

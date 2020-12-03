@@ -8,7 +8,7 @@ const Users = () => {
     const [ matchList, setMatchList ]           = useState([]);
     const [ gameList, setGameList ]             = useState([]);
     const [ champions, setChampions ]           = useState({});
-    const [ items, setItems ]       = useState({});
+    const [ items, setItems ]                   = useState({});
     let index        = useRef(0);
     let scrolling    = useRef(false);
     let accountId    = useRef("");
@@ -68,7 +68,13 @@ const Users = () => {
         
         axios.get(`http://localhost:9000/league/${summonerId.current}`)
             .then(({data}) => {
-                leagueInfo.current = data.data[0];
+                if(data.data.length > 0) {
+                    data.data.forEach(e => {
+                        console.log(e.queueType);
+                        if(e.queueType == "RANKED_SOLO_5x5") leagueInfo.current = e;
+                    });
+                    
+                }
             })
     }
 
@@ -138,9 +144,21 @@ const Users = () => {
                     <span style={ProfileLevelStyle}>{summonerInfo.current.summonerLevel}</span>
                 </div>
                 <span>{summonerInfo.current.name}</span>
+                {leagueInfo.current === undefined ?
+                <div></div>
+                :
                 <div>
-                    
+                    <div>
+                        <img src={`../../images/${leagueInfo.current.tier}.png`}
+                            alt="티어"
+                            width="75px"
+                            height="75px" />
+                    </div>
+                    <div>
+                        {`${leagueInfo.current.tier} ${leagueInfo.current.rank}`}
+                    </div>
                 </div>
+                }
             </div>
 
             <div id="matches" style={matchesStyle}>
@@ -166,7 +184,7 @@ const Users = () => {
         </div>
         :
         <div>
-            <img src="../../loading.gif" alt="loading..."/>
+            <img src="../../images/loading.gif" alt="loading..."/>
         </div>   
     )
 }
@@ -463,7 +481,7 @@ const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
         }
         </div>
         :
-        <div><img src="../../loading.gif" alt="loading..."/></div>
+        <div><img src="../../images/loading.gif" alt="loading..."/></div>
     )
 }
 
