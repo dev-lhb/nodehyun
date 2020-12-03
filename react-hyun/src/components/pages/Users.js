@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-const key = "http://khu-project.herokuapp.com/";
+const key = "http://nodehyun.herokuapp.com/";
 let baseURL;
 
 if(process.env.NODE_ENV === "production") {
