@@ -8,6 +8,7 @@ const Users = () => {
     const [ matchList, setMatchList ]           = useState([]);
     const [ gameList, setGameList ]             = useState([]);
     const [ champions, setChampions ]           = useState({});
+    const [ items, setItems ]       = useState({});
     let index        = useRef(0);
     let scrolling    = useRef(false);
     let accountId    = useRef("");
@@ -35,6 +36,11 @@ const Users = () => {
                     loadMatchList(accountId, index);
                 });
             });
+
+            axios.get('http://ddragon.leagueoflegends.com/cdn/10.24.1/data/en_US/item.json')
+                .then(data => {
+                    setItems(data.data.data);
+                });
         
         //window.addEventListener('scroll', scrollHandler, true);
     }, []);
@@ -147,6 +153,7 @@ const Users = () => {
                                 element={_element}
                                 gameList={gameList}
                                 champions={champions}
+                                items={items}
                                 nickname={nickname}/>
                         </div>
                     )
@@ -164,8 +171,9 @@ const Users = () => {
     )
 }
 
-const Match = ({ gameId, element, gameList, champions, nickname }) => {
-    const [ clicked, setClicked ] = useState(false);
+const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
+    const [ loaded, setLoaded ]     = useState(false);
+    const [ clicked, setClicked ]   = useState(false);
     const [ spell1Id, setSpell1Id ] = useState(0);
     const [ spell2Id, setSpell2Id ] = useState(0);
     const date   = new Date(element.timestamp);
@@ -213,7 +221,6 @@ const Match = ({ gameId, element, gameList, champions, nickname }) => {
         gameList.forEach(game => {
             if(game.gameId === gameId) {
                 gameInfo.current = game;
-                console.log("team", game);
                 teamInfo.current = game.participantIdentities;
                 game.participantIdentities.forEach(pidt => {
                     if(pidt.player.summonerName === nickname) {
@@ -222,6 +229,7 @@ const Match = ({ gameId, element, gameList, champions, nickname }) => {
                                 playerInfo.current = p.stats;
                                 setSpell1Id(p.spell1Id);
                                 setSpell2Id(p.spell2Id);
+                                setLoaded(true);
                             }
                         });
                     }
@@ -308,7 +316,7 @@ const Match = ({ gameId, element, gameList, champions, nickname }) => {
     }
 
     const itemDivStyle = {
-        width: "15%",
+        width: "20%",
     }
 
     const itemEmptyStyle = {
@@ -319,10 +327,35 @@ const Match = ({ gameId, element, gameList, champions, nickname }) => {
     }
 
     const teamDivStyle = {
+        width: "200px",
+        fontSize: "80%",
+        display: "block",
+    }
 
+    const teamTableStyle = {
+        width: "200px",
+        height: "90px",
+        tableLayout: "fixed",
+        border: "0",
+        borderCollapse: "collapse",
+    }
+
+    const teamTdStyle = {
+        textOverflow: "ellipsis",
+        overflow: "hidden",
+        whiteSpace: "nowrap",
+        margin: "0px",
+        padding: "0px",
+        borderCollapse: "collapse",
+    }
+
+    const teamImgStyle = {
+        display: "block",
     }
 
     return(
+        loaded === true
+        ?
         <div>
             <div style={matchStyle} onClick={clickHandler}>
                 <img src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[element.champion]}.png`}
@@ -380,45 +413,45 @@ const Match = ({ gameId, element, gameList, champions, nickname }) => {
                         <thead></thead>
                         <tbody>
                             <tr>
-                                <td>{playerInfo.current.item0 === 0 ? <div style={itemEmptyStyle}></div> : <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item0}.png`} width="35px" height="35px" />}</td>
-                                <td>{playerInfo.current.item1 === 0 ? <div style={itemEmptyStyle}></div> : <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item1}.png`} width="35px" height="35px" />}</td>
-                                <td>{playerInfo.current.item2 === 0 ? <div style={itemEmptyStyle}></div> : <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item2}.png`} width="35px" height="35px" />}</td>
-                                <td>{playerInfo.current.item6 === 0 ? <div style={itemEmptyStyle}></div> : <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item6}.png`} width="35px" height="35px" />}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.current.item0)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item0}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.current.item1)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item1}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.current.item2)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item2}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.current.item6)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item6}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
                             </tr>
                             <tr>
-                                <td>{playerInfo.current.item3 === 0 ? <div style={itemEmptyStyle}></div> : <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item3}.png`} width="35px" height="35px" />}</td>
-                                <td>{playerInfo.current.item4 === 0 ? <div style={itemEmptyStyle}></div> : <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item4}.png`} width="35px" height="35px" />}</td>
-                                <td>{playerInfo.current.item5 === 0 ? <div style={itemEmptyStyle}></div> : <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item5}.png`} width="35px" height="35px" />}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.current.item3)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item3}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.current.item4)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item4}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.current.item5)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item5}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
                                 <td></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <div style={teamDivStyle}>
-                    <table>
+                    <table style={teamTableStyle}>
                         <thead></thead>
-                        <tobdy>
+                        <tbody>
                             <tr>
-                                <td></td>
-                                <td></td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[0].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[0].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[5].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td width="65px" style={teamTdStyle}>{teamInfo.current[5].player.summonerName}</td>
                             </tr>
                             <tr>
-                                <td></td>
-                                <td></td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[1].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[1].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[6].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[6].player.summonerName}</td>
                             </tr>
                             <tr>
-                                <td></td>
-                                <td></td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[2].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[2].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[7].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[7].player.summonerName}</td>
                             </tr>
                             <tr>
-                                <td></td>
-                                <td></td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[3].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[3].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[8].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[8].player.summonerName}</td>
                             </tr>
                             <tr>
-                                <td></td>
-                                <td></td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[4].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[4].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[9].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[9].player.summonerName}</td>
                             </tr>
-                        </tobdy>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -426,9 +459,11 @@ const Match = ({ gameId, element, gameList, champions, nickname }) => {
         ?
             <div>펼쳐진 상태</div>
         :
-            <div>접 힌 상 태</div>
+            <></>
         }
         </div>
+        :
+        <div><img src="../../loading.gif" alt="loading..."/></div>
     )
 }
 
