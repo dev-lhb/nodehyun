@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+const key = "http://khu-project.herokuapp.com/";
+let baseURL;
+
+if(process.env.NODE_ENV === "production") {
+    baseURL = key;
+} else {
+    baseURL = "http://localhost:9000";
+}
 
 const Users = () => {
     const { nickname } = useParams();
@@ -17,7 +25,7 @@ const Users = () => {
     let leagueInfo   = useRef([]);
 
     useEffect(() => {
-        axios.get(`http://localhost:9000/users/${nickname}`)
+        axios.get(`${baseURL}/users/${nickname}`)
             .then(({ data }) => {
                 console.log("[사용자 정보]", data);
                 summonerInfo.current = data;
@@ -46,7 +54,7 @@ const Users = () => {
     }, []);
 
     const loadMatchList = (accountId, index, callback) => {
-        const url = `http://localhost:9000/matchelists/${accountId.current}`;
+        const url = `${baseURL}/matchelists/${accountId.current}`;
         console.log(`[전적 정보 검색] URL : ${url}`);
 
         axios.get(url, { params : { beginIndex: index.current, endIndex: index.current+10 } })
@@ -56,7 +64,7 @@ const Users = () => {
                 setLoading(true);
                 setMatchList(prev => [...prev, ...data.matches]);
                 data.matches.forEach(match => {
-                    const url = `http://localhost:9000/match/${match.gameId}`;
+                    const url = `${baseURL}/match/${match.gameId}`;
                     axios.get(url)
                         .then(({data}) => {
                             setGameList(prev => [...prev, data]);
@@ -66,7 +74,7 @@ const Users = () => {
             });
 
         
-        axios.get(`http://localhost:9000/league/${summonerId.current}`)
+        axios.get(`${baseURL}/league/${summonerId.current}`)
             .then(({data}) => {
                 if(data.data.length > 0) {
                     data.data.forEach(e => {
