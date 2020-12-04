@@ -37,7 +37,7 @@ const Users = () => {
                 console.log("[data]", data);
                 console.log("[accountId]", _accountId);
                 console.log("[summonerId]", data.id);
-                const url = 'http://ddragon.leagueoflegends.com/cdn/10.23.1/data/en_US/champion.json';
+                const url = 'https://ddragon.leagueoflegends.com/cdn/10.23.1/data/en_US/champion.json';
                 axios.get(url).then(({data}) => {
                     for(let idx in data.data) {
                         const value = String(data.data[idx].key);
@@ -50,7 +50,7 @@ const Users = () => {
                 });
             });
 
-            axios.get('http://ddragon.leagueoflegends.com/cdn/10.24.1/data/en_US/item.json')
+            axios.get('https://ddragon.leagueoflegends.com/cdn/10.24.1/data/en_US/item.json')
                 .then(data => {
                     setItems(data.data.data);
                 });
