@@ -7,7 +7,7 @@ let baseURL;
 if(process.env.NODE_ENV === "production") {
     baseURL = key;
 } else {
-    baseURL = "https://localhost:9000";
+    baseURL = "http://localhost:9000";
 }
 
 const Users = () => {
