@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-const key = "http://nodehyun.herokuapp.com";
+const key = "https://nodehyun.herokuapp.com";
 let baseURL;
 
 if(process.env.NODE_ENV === "production") {
     baseURL = key;
 } else {
-    baseURL = "http://localhost:9000";
+    baseURL = "https://localhost:9000";
 }
 
 const Users = () => {
