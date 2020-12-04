@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 const key = "https://nodehyun.herokuapp.com/";
@@ -7,31 +7,36 @@ let baseURL;
 if(process.env.NODE_ENV === "production") {
     baseURL = key;
 } else {
-    baseURL = "http://localhost:9000";
+    baseURL = "https://localhost:9000";
 }
 
 const Users = () => {
     const { nickname } = useParams();
-    const [ loading, setLoading ]     = useState(false);
-    const [ matchList, setMatchList ] = useState([]);
-    const [ gameList, setGameList ]   = useState([]);
-    const [ champions, setChampions ] = useState({});
-    const [ items, setItems ]         = useState({});
-    let index        = useRef(0);
-    let scrolling    = useRef(false);
-    let accountId    = useRef("");
-    let summonerId   = useRef("");
-    let summonerInfo = useRef({});
-    let leagueInfo   = useRef([]);
+    const [ loading, setLoading ]           = useState(false);
+    const [ matchList, setMatchList ]       = useState([]);
+    const [ gameList, setGameList ]         = useState([]);
+    const [ champions, setChampions ]       = useState({});
+    const [ items, setItems ]               = useState({});
+    const [ index, setIndex ]               = useState(0);
+    const [ isMoreLoading, setMoreLoading ] = useState(false);
+    const [ accountId, setAccountId ]       = useState("");
+    const [ summonerInfo, setSummonerInfo ] = useState({});
+    const [ soloLeagueInfo, setSoloLeagueInfo ] = useState({});
+    const [ teamLeagueInfo, setTeamLeagueInfo ] = useState({});
 
     useEffect(() => {
         axios.get(`${baseURL}/users/${nickname}`)
             .then(({ data }) => {
-                console.log("[사용자 정보]", data);
-                summonerInfo.current = data;
-                accountId.current = data.accountId;
-                summonerId.current = data.id;
-                console.log("[사용자 ID]", accountId.current);
+                /*
+                    accountId, profileIconId, revisionDate, name, id, puuid, summonerLevel
+                */
+                const _accountId  = data.accountId;
+                const _summonerId = data.id;
+                setSummonerInfo(data);
+                setAccountId(data.accountId);
+                console.log("[data]", data);
+                console.log("[accountId]", _accountId);
+                console.log("[summonerId]", data.id);
                 const url = 'http://ddragon.leagueoflegends.com/cdn/10.23.1/data/en_US/champion.json';
                 axios.get(url).then(({data}) => {
                     for(let idx in data.data) {
@@ -41,7 +46,7 @@ const Users = () => {
                         });
                     }
                 }).then(() => {
-                    loadMatchList(accountId, index);
+                    loadMatchList(_accountId, _summonerId, index);
                 });
             });
 
@@ -53,14 +58,17 @@ const Users = () => {
         //window.addEventListener('scroll', scrollHandler, true);
     }, []);
 
-    const loadMatchList = (accountId, index, callback) => {
-        const url = `${baseURL}/matchelists/${accountId.current}`;
+    const loadMatchList = (_accountId, _summonerId, index, callback) => {
+        const url = `${baseURL}/matchelists/${_accountId}`;
         console.log(`[전적 정보 검색] URL : ${url}`);
 
-        axios.get(url, { params : { beginIndex: index.current, endIndex: index.current+10 } })
+        axios.get(url, { params : { beginIndex: index, endIndex: index+10 } })
             .then(({ data }) => {
-                index.current += 10;
-                console.log("index :", index.current);
+                /*
+                    matches : [{platformId, gameId, champion, queue, season, timestamp, role, lane}]
+                */
+                setIndex(prev => prev + 10);
+                console.log(`[게임 정보 검색] useState:index : ${index}`);
                 setLoading(true);
                 setMatchList(prev => [...prev, ...data.matches]);
                 data.matches.forEach(match => {
@@ -74,14 +82,20 @@ const Users = () => {
             });
 
         
-        axios.get(`${baseURL}/league/${summonerId.current}`)
+        axios.get(`${baseURL}/league/${_summonerId}`)
             .then(({data}) => {
+                /*
+                    leagueId, summonerId, summonerName, queueType, tier, rank, leaguePoints,
+                    wins, losses, hotStreak, veteran, freshBlood, inactive, miniSeries
+                */
                 if(data.data.length > 0) {
                     data.data.forEach(e => {
-                        console.log(e.queueType);
-                        if(e.queueType == "RANKED_SOLO_5x5") leagueInfo.current = e;
+                        if(e.queueType === "RANKED_SOLO_5x5") {
+                            setSoloLeagueInfo(e);
+                        } else if(e.queueType === "RANKED_FLEX_SR") {
+                            setTeamLeagueInfo(e);
+                        }
                     });
-                    
                 }
             })
     }
@@ -93,14 +107,14 @@ const Users = () => {
 
     const profileStyle = {
         width : "100%",
-        height : "100px",
+        height : "120px",
         display : "inline-flex",
         zIndex : "0",
     }
 
     const profileIconStyle = {
-        width : "100px",
-        height : "100px",
+        width : "120px",
+        height : "120px",
     }
 
     const ProfileLevelStyle = {
@@ -120,23 +134,18 @@ const Users = () => {
         width: "100%",
     }
 
+    const tierDivStyle = {
+        width: "50%",
+        display: "flex",
+        marginLeft: "10px",
+        textAlign: "center",
+    }
+
     const loadButtonHandler = (event) => {
-        /*
-        let scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-        let scrollTop = Math.max(document.documentElement.scrollTop, document.body.scrollTop);
-        let clientHeight = document.documentElement.clientHeight;
-        if(scrollTop + clientHeight === scrollHeight) {
-            if(!scrolling.current) {
-                scrolling.current = !scrolling.current;
-                loadMatchList(accountId, index, () => {
-                    scrolling.current = !scrolling.current;
-                });
-            }
-        }*/
-        if(!scrolling.current) {
-            scrolling.current = !scrolling.current;
+        if(!isMoreLoading) {
+            setMoreLoading(prev => !prev);
             loadMatchList(accountId, index, () => {
-                scrolling.current = !scrolling.current;
+                setMoreLoading(prev => !prev);
             });
         }
     }
@@ -147,26 +156,65 @@ const Users = () => {
         <div id="container" style={containerStyle}>
             <div id="top" style={profileStyle}>
                 <div>
-                    <img src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/profileicon/${summonerInfo.current.profileIconId}.png`}
-                        style={profileIconStyle} alt={summonerInfo.current.profileIconId}/>
-                    <span style={ProfileLevelStyle}>{summonerInfo.current.summonerLevel}</span>
+                    <img src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/profileicon/${summonerInfo.profileIconId}.png`}
+                        style={profileIconStyle} alt={summonerInfo.profileIconId}/>
+                    <span style={ProfileLevelStyle}>{summonerInfo.summonerLevel}</span>
                 </div>
-                <span>{summonerInfo.current.name}</span>
-                {leagueInfo.current === undefined ?
-                <div></div>
-                :
                 <div>
+                    <span>{summonerInfo.name}</span>
+                </div>
+                <div style={tierDivStyle}>
                     <div>
-                        <img src={`../../images/${leagueInfo.current.tier}.png`}
-                            alt="티어"
-                            width="75px"
-                            height="75px" />
+                        <table>
+                            <thead></thead>
+                            <tbody>
+                                <tr>솔로 랭크</tr>
+                                <tr>
+                                    <img src={`../../images/${Object.keys(soloLeagueInfo).length === 0 ? "UNRANKED" : soloLeagueInfo.tier}.png`}
+                                        alt="티어" width="50px" height="50px" />
+                                </tr>
+                                <tr>
+                                    {Object.keys(soloLeagueInfo).length === 0 ? <></> : `${soloLeagueInfo.tier} ${soloLeagueInfo.rank} (${soloLeagueInfo.leaguePoints}P)`}
+                                </tr>
+                                <tr>
+                                    {Object.keys(soloLeagueInfo).length === 0
+                                    ?
+                                    <></>
+                                    :
+                                    <td>
+                                        <font color="blue">{soloLeagueInfo.wins} Wins</font> <font color="red">{soloLeagueInfo.losses} Loses</font> ({(soloLeagueInfo.wins / (soloLeagueInfo.wins+soloLeagueInfo.losses) * 100).toFixed(1)}%)
+                                    </td>
+                                    }
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                     <div>
-                        {`${leagueInfo.current.tier} ${leagueInfo.current.rank}`}
+                        <table>
+                            <thead></thead>
+                            <tbody>
+                                <tr>자유 랭크</tr>
+                                <tr>
+                                    <img src={`../../images/${Object.keys(teamLeagueInfo).length === 0 ? "UNRANKED" : teamLeagueInfo.tier}.png`}
+                                        alt="티어" width="50px" height="50px" />
+                                </tr>
+                                <tr>
+                                    {Object.keys(teamLeagueInfo).length === 0 ? <></> : `${teamLeagueInfo.tier} ${teamLeagueInfo.rank} (${teamLeagueInfo.leaguePoints}P)`}
+                                </tr>
+                                <tr>
+                                    {Object.keys(soloLeagueInfo).length === 0
+                                    ?
+                                    <></>
+                                    :
+                                    <td>
+                                        <font color="blue">{teamLeagueInfo.wins} Wins</font> <font color="red">{teamLeagueInfo.losses} Loses</font> ({(teamLeagueInfo.wins / (teamLeagueInfo.wins+teamLeagueInfo.losses) * 100).toFixed(1)}%)
+                                    </td>
+                                    }
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                }
             </div>
 
             <div id="matches" style={matchesStyle}>
@@ -192,20 +240,21 @@ const Users = () => {
         </div>
         :
         <div>
-            <img src="../../images/loading.gif" alt="loading..."/>
+            <img src="../../images/loading.gif" weight="100px" height="100px" alt="loading..."/>
         </div>   
     )
 }
 
 const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
-    const [ loaded, setLoaded ]     = useState(false);
-    const [ clicked, setClicked ]   = useState(false);
-    const [ spell1Id, setSpell1Id ] = useState(0);
-    const [ spell2Id, setSpell2Id ] = useState(0);
+    const [ loaded, setLoaded ]         = useState(false);
+    const [ clicked, setClicked ]       = useState(false);
+    const [ spell1Id, setSpell1Id ]     = useState(0);
+    const [ spell2Id, setSpell2Id ]     = useState(0);
+    const [ gameInfo, setGameInfo ]     = useState({});
+    const [ playerInfo, setPlayerInfo ] = useState({});
+    const [ teamInfo, setTeamInfo ]     = useState({});
+
     const date   = new Date(element.timestamp);
-    let gameInfo = useRef({});
-    let playerInfo = useRef({});
-    let teamInfo = useRef({});
     const summonerSpell = {
         "1": "SummonerBoost",
         "3": "SummonerExhaust",
@@ -246,13 +295,13 @@ const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
     useEffect(() => {
         gameList.forEach(game => {
             if(game.gameId === gameId) {
-                gameInfo.current = game;
-                teamInfo.current = game.participantIdentities;
+                setGameInfo(game);
+                setTeamInfo(game.participantIdentities);
                 game.participantIdentities.forEach(pidt => {
                     if(pidt.player.summonerName === nickname) {
                         game.participants.forEach(p => {
                             if(p.participantId === pidt.participantId) {
-                                playerInfo.current = p.stats;
+                                setPlayerInfo(p.stats);
                                 setSpell1Id(p.spell1Id);
                                 setSpell2Id(p.spell2Id);
                                 setLoaded(true);
@@ -297,7 +346,7 @@ const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
         height: "100px",
         border: "1px solid #D3DEE9",
         display: "flex",
-        backgroundColor: playerInfo.current.win ? "#a3cfec" : "#e2b6b3",
+        backgroundColor: playerInfo.win ? "#a3cfec" : "#e2b6b3",
     }
 
     const championIconStyle = {
@@ -388,7 +437,7 @@ const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
                     style={championIconStyle}
                     alt="챔피언초상화"/>
                 <div style={spellDivStyle}>
-                    <div>{gameMode[gameInfo.current.gameMode]}·{timeForToday(date)}</div>
+                    <div>{gameMode[gameInfo.gameMode]}·{timeForToday(date)}</div>
                     <div style={spellDivBottomStyle}>
                         <div style={spellDiv2Style}>
                             <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/spell/${summonerSpell[spell1Id]}.png`}
@@ -397,7 +446,7 @@ const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
                             width="30px" height="30px" alt="소환사 스펠2" />
                         </div>
                         <div style={spellTimeDivStyle}>
-                            {`${(gameInfo.current.gameDuration/60).toFixed(0)}분 ${gameInfo.current.gameDuration%60}초`}
+                            {`${(gameInfo.gameDuration/60).toFixed(0)}분 ${gameInfo.gameDuration%60}초`}
                         </div>
                     </div>
                     
@@ -409,17 +458,17 @@ const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
                         <tbody>
                             <tr></tr>
                             <tr>
-                                <td>{playerInfo.current.kills}</td>
+                                <td>{playerInfo.kills}</td>
                                 <td>/</td>
-                                <td>{playerInfo.current.deaths}</td>
+                                <td>{playerInfo.deaths}</td>
                                 <td>/</td>
-                                <td>{playerInfo.current.assists}</td>
+                                <td>{playerInfo.assists}</td>
                             </tr>
                             <tr>
-                                <td colSpan='5'>{playerInfo.current.deaths === 0 ? "Perfect" : ((playerInfo.current.kills + playerInfo.current.assists) / playerInfo.current.deaths).toFixed(2)}</td>
+                                <td colSpan='5'>{playerInfo.deaths === 0 ? "Perfect" : ((playerInfo.kills + playerInfo.assists) / playerInfo.deaths).toFixed(2)}</td>
                             </tr>
                             <tr>
-                                <td colSpan='5'>{playerInfo.current.largestMultiKill === 2 && "더블킬"}{playerInfo.current.largestMultiKill === 3 && "트리플킬"}{playerInfo.current.largestMultiKill === 4 && "쿼드라킬"}{playerInfo.current.largestMultiKill === 5 && "펜타킬"}</td>
+                                <td colSpan='5'>{playerInfo.largestMultiKill === 2 && "더블킬"}{playerInfo.largestMultiKill === 3 && "트리플킬"}{playerInfo.largestMultiKill === 4 && "쿼드라킬"}{playerInfo.largestMultiKill === 5 && "펜타킬"}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -428,8 +477,8 @@ const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
                     <table style={tableStyle}>
                         <thead></thead>
                         <tbody>
-                            <tr><td>{"레벨 "+playerInfo.current.champLevel}</td></tr>
-                            <tr><td>{`${playerInfo.current.totalMinionsKilled} (${(playerInfo.current.totalMinionsKilled/(gameInfo.current.gameDuration/60)).toFixed(1)}) CS`}</td></tr>
+                            <tr><td>{"레벨 " + playerInfo.champLevel}</td></tr>
+                            <tr><td>{`${playerInfo.totalMinionsKilled} (${(playerInfo.totalMinionsKilled/(gameInfo.gameDuration/60)).toFixed(1)}) CS`}</td></tr>
                             <tr><td></td></tr>
                         </tbody>
                     </table>
@@ -439,15 +488,15 @@ const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
                         <thead></thead>
                         <tbody>
                             <tr>
-                                <td>{Object.keys(items).includes((String)(playerInfo.current.item0)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item0}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
-                                <td>{Object.keys(items).includes((String)(playerInfo.current.item1)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item1}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
-                                <td>{Object.keys(items).includes((String)(playerInfo.current.item2)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item2}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
-                                <td>{Object.keys(items).includes((String)(playerInfo.current.item6)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item6}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.item0)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.item0}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.item1)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.item1}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.item2)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.item2}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.item6)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.item6}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
                             </tr>
                             <tr>
-                                <td>{Object.keys(items).includes((String)(playerInfo.current.item3)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item3}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
-                                <td>{Object.keys(items).includes((String)(playerInfo.current.item4)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item4}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
-                                <td>{Object.keys(items).includes((String)(playerInfo.current.item5)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.current.item5}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.item3)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.item3}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.item4)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.item4}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
+                                <td>{Object.keys(items).includes((String)(playerInfo.item5)) ? <img src={`http://ddragon.leagueoflegends.com/cdn/10.24.1/img/item/${playerInfo.item5}.png`} width="35px" height="35px" alt="아이템" /> : <div style={itemEmptyStyle}></div>}</td>
                                 <td></td>
                             </tr>
                         </tbody>
@@ -458,24 +507,24 @@ const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
                         <thead></thead>
                         <tbody>
                             <tr>
-                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[0].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[0].player.summonerName}</td>
-                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[5].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td width="65px" style={teamTdStyle}>{teamInfo.current[5].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.participants[0].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td width="65px" style={teamTdStyle}>{teamInfo[0].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.participants[5].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td width="65px" style={teamTdStyle}>{teamInfo[5].player.summonerName}</td>
                             </tr>
                             <tr>
-                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[1].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[1].player.summonerName}</td>
-                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[6].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[6].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.participants[1].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo[1].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.participants[6].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo[6].player.summonerName}</td>
                             </tr>
                             <tr>
-                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[2].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[2].player.summonerName}</td>
-                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[7].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[7].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.participants[2].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo[2].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.participants[7].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo[7].player.summonerName}</td>
                             </tr>
                             <tr>
-                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[3].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[3].player.summonerName}</td>
-                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[8].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[8].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.participants[3].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo[3].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.participants[8].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo[8].player.summonerName}</td>
                             </tr>
                             <tr>
-                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[4].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[4].player.summonerName}</td>
-                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.current.participants[9].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo.current[9].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.participants[4].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo[4].player.summonerName}</td>
+                                <td width="18px"><img style={teamImgStyle} src={`http://ddragon.leagueoflegends.com/cdn/10.23.1/img/champion/${champions[gameInfo.participants[9].championId]}.png`} width="18px" height="18px" alt="플레이어"></img></td><td style={teamTdStyle}>{teamInfo[9].player.summonerName}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -489,7 +538,7 @@ const Match = ({ gameId, element, gameList, champions, items, nickname }) => {
         }
         </div>
         :
-        <div><img src="../../images/loading.gif" alt="loading..."/></div>
+        <div><img src="../../images/loading.gif" weight="100px" height="100px" alt="loading..."/></div>
     )
 }
 

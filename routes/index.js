@@ -61,7 +61,7 @@ router.get('/match/:gameId', function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
     const encryptAccountId = req.params.encryptAccountId;
-    console.log("인크립트어카운트아이디", encryptAccountId);
+    console.log("[encryptAccountId]", encryptAccountId);
     
     var url = `https://kr.api.riotgames.com/lol/league/v4/entries/by-summoner/${encryptAccountId}?api_key=${api_key}`;
     
